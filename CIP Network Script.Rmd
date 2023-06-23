@@ -1,0 +1,1027 @@
+---
+title: "CIP Network Script - Markdown"
+author: "Cory Fournier"
+date: "2023-06-23"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3 
+    toc_float: true
+    number_sections: true
+    theme: sandstone
+    highlight: tango
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r libraries, echo=FALSE, results='hide'}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr)
+library(ggplot2)
+library(tidyverse)
+library(viridis)
+library(adegenet)
+library(igraph)
+library(gstudio)
+library(graph4lg)
+library(adegenet)
+library(popgraph)
+```
+
+```{r Load Data, create CIP graph, calculate node metrics, cache=TRUE,echo=FALSE,results='hide'}
+
+centroids <- read.csv( "Boreal_100km_centroids.csv")
+centroids2 <- centroids[,c(1:3)]
+
+centroid_crds <- centroids2
+colnames(centroid_crds)<-c("ID", "x", "y")
+cent_order <- as.character(centroids2$Node)
+
+
+# Read in data and identify which columns are loci
+data<-read_population("Boreal2022_100km_data.csv", type="column", locus.columns = 13:30)
+#data$clust<-as.character(data$clust)
+
+#convert from gstudio format to graph4lg format
+genind <- gstud_to_genind(data, pop_col = "Node", ind_col = "PCID")
+
+# Calculate measures of genetic diversity (Assessment)He, Ho, Na)
+gen_div <- pop_gen_index(genind)
+
+# Write csv of genetic diversity measures
+write.csv(gen_div, "summary_stats_boreal2022_V4.csv")
+
+# Create network pruned based on the conditional independence principle (CIP: Dyer&Nason, 2004)
+graph_cip <- gen_graph_indep(x= genind,
+                             dist = "PG",
+                             cov = "dist",
+                             adj = "holm",
+                             pcor = "magwene",
+                             alpha = 0.05) 
+
+# Calculate node-based metrics
+metric_cip <- compute_node_metric(graph = graph_cip)
+V(graph_cip)$clust_coef <- transitivity(graph_cip, type = c("local"))
+vertex <- as_data_frame(graph_cip, what = c("vertices"))
+vertex <- rename(vertex, ID = name)
+metric_cip <- merge(metric_cip, vertex, by = "ID")
+
+write.csv(metric_cip, "node_metrics_boreal2022_V4.csv")
+
+# Add node-based metrics as node attributes
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = metric_cip,
+                            index = "ID",
+                            include = "all") 
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = gen_div,
+                            index = "ID",
+                            include = "all")
+
+plot_graph_lg(graph = graph_cip,
+              mode = "aspatial",
+              link_width = "inv_w",
+              node_size = "miw")
+```
+
+# Walktrap community detection 
+```{r walk trap community detection, cache=TRUE,echo=FALSE,results='hide'}
+
+# Run community detection algorithm to determine optimal partition
+modul_cip <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",)
+
+# Add optimal community assignment as node attributes 
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip,
+                            index = "ID",
+                            include = "all")
+
+## Run community detection algorithm for set number of communities from 2 - n, where n is optimal number of communities
+
+modul_cip_2 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 2)
+
+modul_cip_2 <- rename(modul_cip_2, c("module_2" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_2,
+                            index = "ID",
+                            include = "all")
+
+modul_cip_3 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 3)
+
+modul_cip_3 <- rename(modul_cip_3, c("module_3" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_3,
+                            index = "ID",
+                            include = "all")
+
+modul_cip_4 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 4)
+
+modul_cip_4 <- rename(modul_cip_4, c("module_4" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_4,
+                            index = "ID",
+                            include = "all")
+
+modul_cip_5 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 5)
+
+modul_cip_5 <- rename(modul_cip_5, c("module_5" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_5,
+                            index = "ID",
+                            include = "all")
+
+modul_cip_6 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 6)
+
+modul_cip_6 <- rename(modul_cip_6, c("module_6" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_6,
+                            index = "ID",
+                            include = "all")
+
+modul_cip_7 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 7)
+
+modul_cip_7 <- rename(modul_cip_7, c("module_7" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_7,
+                            index = "ID",
+                            include = "all")
+
+
+modul_cip_8 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 8)
+
+modul_cip_8 <- rename(modul_cip_8, c("module_8" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_8,
+                            index = "ID",
+                            include = "all")
+
+
+modul_cip_9 <- compute_graph_modul(graph_cip,
+                                 algo = "walktrap",
+                                 node_inter = "distance",
+                                 nb_modul = 9)
+
+modul_cip_9 <- rename(modul_cip_9, c("module_9" = "module"))
+
+graph_cip <- add_nodes_attr(graph_cip,
+                            data = modul_cip_9,
+                            index = "ID",
+                            include = "all")
+
+
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_2",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_3",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_4",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_5",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_6",
+                       node_size = "btw")
+
+p_cip
+
+p_cip <- plot_graph_lg(graph_cip, 
+                       mode = "spatial",
+                       crds = centroid_crds,
+                       link_width = "inv_w",
+                       module = "module_7",
+                       node_size = "btw")
+
+p_cip
+```
+
+# Export Graph 
+```{r Export Graph, cache=TRUE,echo=FALSE,results='hide'}
+
+write_graph(simplify(graph_cip),  "Boreal_CIP_Walktrap.gml", format = "gml")
+
+vertex <- as_data_frame(graph_cip, what = c("vertices"))
+vertex <- rename(vertex, ID = name)
+
+```
+
+# Second order Networks
+```{r Create second order walktrap networks, cache=TRUE,echo=FALSE,results='hide'}
+# ---- Create networks for each module ---- 
+
+modules_all <- vertex[ ,c(1,13:21)]
+modules_all <- rename(modules_all, Node=ID)
+data_for_modules <- read.csv("Boreal2022_100km_V4.csv")
+module_all_data <- merge.data.frame(data_for_modules, modules_all, by="Node")
+write.csv(module_all_data, "ALL_first_order_walktrap_modules_data.csv")
+
+modules <- modul_cip
+modules <- rename(modules, Node=ID)
+
+df <- read.csv("Boreal2022_100km_V4.csv")
+module_data <- merge.data.frame(df,modules, by="Node")
+write.csv(module_data, "first_order_walktrap_modules_data.csv")
+
+#create centoid df
+#centroids <- read.csv("Boreal_100km_centroids_V2.csv")
+#centroids2 <- centroids[,c(2,3,4)]
+module_centroids <- merge.data.frame(centroids2, modules, by="Node")
+
+# subset for k=2
+modules_K2 <- rename(modules_all, Node=ID)
+
+modules_K2 <- modules_all[ ,c(1,3)]
+
+module_centroids_K2 <- merge.data.frame(centroids2, modules_K2, by="Node")
+                                     
+write.csv(module_centroids_K2, "Centroids_K2_Modules.csv")                                     
+                                     
+                                    
+## -- Module 1 --
+
+# subset data for module 1
+data_module_1 <- subset(module_data, module == 1)
+write.csv(data_module_1, "BorealV4_walk_Module_1_data.csv")
+
+# subset centroids for module 1
+centroids_module_1 <- subset(module_centroids, module == 1)
+centroids_module_1_crds <- centroids_module_1[,c(1,2,3)]
+colnames(centroids_module_1_crds)<-c("ID", "x", "y")
+cent_order_module_1 <- as.character(centroids_module_1$module)
+write.csv(centroids_module_1, "Module_1_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_1 <- read_population("BorealV4_walk_Module_1_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_1 <- gstud_to_genind(gstud_data_module_1, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_1 <- pop_gen_index(genind_module_1)
+
+#write csv of gen div
+write.csv(gen_div_module_1, "summary_stats_V4_walk_module1.csv")
+
+# Create CIP graph
+graph_cip_module_1 <- gen_graph_indep(x= genind_module_1,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_1 <- compute_node_metric(graph = graph_cip_module_1)
+
+#add node metrics as node attributes
+graph_cip_module_1 <- add_nodes_attr(graph_cip_module_1,
+                                     data = metric_cip_module_1,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_1 <- compute_graph_modul(graph_cip_module_1,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+
+#write.csv(module_cip_module_1, "module_CIP_module1.csv")
+
+# add communitty detection algorithm results as node attributes
+graph_cip_module_1 <- add_nodes_attr(graph_cip_module_1,
+                                     data = module_cip_module_1,
+                                     index = "ID",
+                                     include = "all")
+#add genetic diversity (summary stats)
+graph_cip_module_1 <- add_nodes_attr(graph_cip_module_1,
+                                     data = gen_div_module_1,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_1, 
+             crds = centroids_module_1_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_1_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_1 <- plot_graph_lg(graph_cip_module_1, 
+                                mode = "spatial",
+                                crds = centroids_module_1_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_1
+
+## Module 2
+
+# subset data for module 2
+data_module_2 <- subset(module_data, module == 2)
+write.csv(data_module_2, "BorealV4_walk_Module_2_data.csv")
+
+# subset centroids for module 2
+centroids_module_2 <- subset(module_centroids, module == 2)
+
+centroids_module_2_crds <- centroids_module_2[,c(1,2,3)]
+
+colnames(centroids_module_2_crds)<-c("ID", "x", "y")
+cent_order_module_2 <- as.character(centroids_module_2$Node)
+write.csv(centroids_module_2, "Module_2_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_2 <- read_population("BorealV4_walk_Module_2_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_2 <- gstud_to_genind(gstud_data_module_2, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_2 <- pop_gen_index(genind_module_2)
+
+#write csv of gen div
+write.csv(gen_div_module_2, "summary_stats_V4_walk_module2.csv")
+
+graph_cip_module_2 <- gen_graph_indep(x= genind_module_2,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_2 <- compute_node_metric(graph = graph_cip_module_2)
+
+#add node metrics as node attributes
+graph_cip_module_2 <- add_nodes_attr(graph_cip_module_2,
+                                     data = metric_cip_module_2,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_2 <- compute_graph_modul(graph_cip_module_2,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_1, "module_CIP_module1.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_2 <- add_nodes_attr(graph_cip_module_2,
+                                     data = module_cip_module_2,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_2 <- add_nodes_attr(graph_cip_module_2,
+                                     data = gen_div_module_2,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_2, 
+             crds = centroids_module_2_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_2_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_2 <- plot_graph_lg(graph_cip_module_2, 
+                                mode = "spatial",
+                                crds = centroids_module_2_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_2
+
+## -- Module 3 -- 
+
+# subset data for module 3
+data_module_3 <- subset(module_data, module == 3)
+write.csv(data_module_3, "BorealV4_walk_Module_3_data.csv")
+
+# subset centroids for module 3
+centroids_module_3 <- subset(module_centroids, module == 3)
+
+centroids_module_3_crds <- centroids_module_3[,c(1,2,3)]
+
+colnames(centroids_module_3_crds)<-c("ID", "x", "y")
+cent_order_module_3 <- as.character(centroids_module_3$Node)
+write.csv(centroids_module_3, "Module_3_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_3 <- read_population("BorealV4_walk_Module_3_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_3 <- gstud_to_genind(gstud_data_module_3, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_3 <- pop_gen_index(genind_module_3)
+
+#write csv of gen div
+write.csv(gen_div_module_3, "summary_stats_V4_walk_module3.csv")
+
+graph_cip_module_3 <- gen_graph_indep(x= genind_module_3,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_3 <- compute_node_metric(graph = graph_cip_module_3)
+
+#add node metrics as node attributes
+graph_cip_module_3 <- add_nodes_attr(graph_cip_module_3,
+                                     data = metric_cip_module_3,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_3 <- compute_graph_modul(graph_cip_module_3,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_1, "module_CIP_module1.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_3 <- add_nodes_attr(graph_cip_module_3,
+                                     data = module_cip_module_3,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_3 <- add_nodes_attr(graph_cip_module_3,
+                                     data = gen_div_module_3,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_3, 
+             crds = centroids_module_3_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_3_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_3 <- plot_graph_lg(graph_cip_module_3, 
+                                mode = "spatial",
+                                crds = centroids_module_3_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_3
+
+## -- Module 4 -- 
+
+# subset data for module 4
+data_module_4 <- subset(module_data, module == 4)
+write.csv(data_module_4, "BorealV4_walk_Module_4_data.csv")
+
+# subset centroids for module 4
+centroids_module_4 <- subset(module_centroids, module == 4)
+
+centroids_module_4_crds <- centroids_module_4[,c(1,2,3)]
+
+colnames(centroids_module_4_crds)<-c("ID", "x", "y")
+cent_order_module_4 <- as.character(centroids_module_4$Node)
+write.csv(centroids_module_4, "Module_4_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_4 <- read_population("BorealV4_walk_Module_4_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_4 <- gstud_to_genind(gstud_data_module_4, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_4 <- pop_gen_index(genind_module_4)
+
+#write csv of gen div
+write.csv(gen_div_module_4, "summary_stats_V4_walk_module4.csv")
+
+graph_cip_module_4 <- gen_graph_indep(x= genind_module_4,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_4 <- compute_node_metric(graph = graph_cip_module_4)
+
+#add node metrics as node attributes
+graph_cip_module_4 <- add_nodes_attr(graph_cip_module_4,
+                                     data = metric_cip_module_4,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_4 <- compute_graph_modul(graph_cip_module_4,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_1, "module_CIP_module1.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_4 <- add_nodes_attr(graph_cip_module_4,
+                                     data = module_cip_module_4,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_4 <- add_nodes_attr(graph_cip_module_4,
+                                     data = gen_div_module_4,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_4, 
+             crds = centroids_module_4_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_4_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_4 <- plot_graph_lg(graph_cip_module_4, 
+                                mode = "spatial",
+                                crds = centroids_module_4_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_4
+
+## -- Module 5 -- 
+
+# subset data for module 5
+data_module_5 <- subset(module_data, module == 5)
+write.csv(data_module_5, "BorealV4_walk_Module_5_data.csv")
+
+# subset centroids for module 5
+centroids_module_5 <- subset(module_centroids, module == 5)
+
+centroids_module_5_crds <- centroids_module_5[,c(1,2,3)]
+
+colnames(centroids_module_5_crds)<-c("ID", "x", "y")
+cent_order_module_5 <- as.character(centroids_module_5$Node)
+write.csv(centroids_module_5, "Module_5_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_5 <- read_population("BorealV4_walk_Module_5_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_5 <- gstud_to_genind(gstud_data_module_5, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_5 <- pop_gen_index(genind_module_5)
+
+#write csv of gen div
+write.csv(gen_div_module_5, "summary_stats_V4_walk_module5.csv")
+
+graph_cip_module_5 <- gen_graph_indep(x= genind_module_5,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_5 <- compute_node_metric(graph = graph_cip_module_5)
+
+#add node metrics as node attributes
+graph_cip_module_5 <- add_nodes_attr(graph_cip_module_5,
+                                     data = metric_cip_module_5,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_5 <- compute_graph_modul(graph_cip_module_5,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_1, "module_CIP_module1.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_5 <- add_nodes_attr(graph_cip_module_5,
+                                     data = module_cip_module_5,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_5 <- add_nodes_attr(graph_cip_module_5,
+                                     data = gen_div_module_5,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_5, 
+             crds = centroids_module_5_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_5_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_5 <- plot_graph_lg(graph_cip_module_5, 
+                                mode = "spatial",
+                                crds = centroids_module_5_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_5
+
+## -- Module 6 -- 
+
+# subset data for module 6
+data_module_6 <- subset(module_data, module == 6)
+write.csv(data_module_6, "BorealV4_walk_Module_6_data.csv")
+
+# subset centroids for module 6
+centroids_module_6 <- subset(module_centroids, module == 6)
+
+centroids_module_6_crds <- centroids_module_6[,c(1,2,3)]
+
+colnames(centroids_module_6_crds)<-c("ID", "x", "y")
+cent_order_module_6 <- as.character(centroids_module_6$Node)
+write.csv(centroids_module_6, "Module_6_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_6 <- read_population("BorealV4_walk_Module_6_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_6 <- gstud_to_genind(gstud_data_module_6, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_6 <- pop_gen_index(genind_module_6)
+
+#write csv of gen div
+write.csv(gen_div_module_6, "summary_stats_V4_walk_module6.csv")
+
+graph_cip_module_6 <- gen_graph_indep(x= genind_module_6,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_6 <- compute_node_metric(graph = graph_cip_module_6)
+
+#add node metrics as node attributes
+graph_cip_module_6 <- add_nodes_attr(graph_cip_module_6,
+                                     data = metric_cip_module_6,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_6 <- compute_graph_modul(graph_cip_module_6,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_6, "module_CIP_module6.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_6 <- add_nodes_attr(graph_cip_module_6,
+                                     data = module_cip_module_6,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_6 <- add_nodes_attr(graph_cip_module_6,
+                                     data = gen_div_module_6,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_6, 
+             crds = centroids_module_6_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_6_V4",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_6 <- plot_graph_lg(graph_cip_module_6, 
+                                mode = "spatial",
+                                crds = centroids_module_6_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_6
+
+## -- Module 7 -- 
+
+# subset data for module 7
+data_module_7 <- subset(module_data, module == 7)
+write.csv(data_module_7, "BorealV2_walk_Module_7_data.csv")
+
+# subset centroids for module 7
+centroids_module_7 <- subset(module_centroids, module == 7)
+
+centroids_module_7_crds <- centroids_module_7[,c(1,2,3)]
+
+colnames(centroids_module_7_crds)<-c("ID", "x", "y")
+cent_order_module_7 <- as.character(centroids_module_7$Node)
+write.csv(centroids_module_7, "Module_7_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_7 <- read_population("BorealV2_walk_Module_7_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_7 <- gstud_to_genind(gstud_data_module_7, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_7 <- pop_gen_index(genind_module_7)
+
+#write csv of gen div
+write.csv(gen_div_module_7, "summary_stats_V2_walk_module7.csv")
+
+graph_cip_module_7 <- gen_graph_indep(x= genind_module_7,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_7 <- compute_node_metric(graph = graph_cip_module_7)
+
+#add node metrics as node attributes
+graph_cip_module_7 <- add_nodes_attr(graph_cip_module_7,
+                                     data = metric_cip_module_7,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_7 <- compute_graph_modul(graph_cip_module_7,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_7, "module_CIP_module7.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_7 <- add_nodes_attr(graph_cip_module_7,
+                                     data = module_cip_module_7,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_7 <- add_nodes_attr(graph_cip_module_7,
+                                     data = gen_div_module_7,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_7, 
+             crds = centroids_module_7_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_7_V3",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_7 <- plot_graph_lg(graph_cip_module_7, 
+                                mode = "spatial",
+                                crds = centroids_module_7_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_7
+
+
+
+## -- Module 8 -- 
+
+# subset data for module 8
+data_module_8 <- subset(module_data, module == 8)
+write.csv(data_module_8, "BorealV2_walk_Module_8_data.csv")
+
+# subset centroids for module 8
+centroids_module_8 <- subset(module_centroids, module == 8)
+
+centroids_module_8_crds <- centroids_module_8[,c(1,2,3)]
+
+colnames(centroids_module_8_crds)<-c("ID", "x", "y")
+cent_order_module_8 <- as.character(centroids_module_8$Node)
+write.csv(centroids_module_8, "Module_8_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_8 <- read_population("BorealV2_walk_Module_8_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_8 <- gstud_to_genind(gstud_data_module_8, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_8 <- pop_gen_index(genind_module_8)
+
+#write csv of gen div
+write.csv(gen_div_module_8, "summary_stats_V2_walk_module8.csv")
+
+graph_cip_module_8 <- gen_graph_indep(x= genind_module_8,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_8 <- compute_node_metric(graph = graph_cip_module_8)
+
+#add node metrics as node attributes
+graph_cip_module_8 <- add_nodes_attr(graph_cip_module_8,
+                                     data = metric_cip_module_8,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_8 <- compute_graph_modul(graph_cip_module_8,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_8, "module_CIP_module8.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_8 <- add_nodes_attr(graph_cip_module_8,
+                                     data = module_cip_module_8,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_8 <- add_nodes_attr(graph_cip_module_8,
+                                     data = gen_div_module_8,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_8, 
+             crds = centroids_module_8_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_8_V3",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_8 <- plot_graph_lg(graph_cip_module_8, 
+                                mode = "spatial",
+                                crds = centroids_module_8_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_8
+
+
+## -- Module 9 -- 
+
+# subset data for module 9
+data_module_9 <- subset(module_data, module == 9)
+write.csv(data_module_9, "BorealV2_walk_Module_9_data.csv")
+
+# subset centroids for module 9
+centroids_module_9 <- subset(module_centroids, module == 9)
+
+centroids_module_9_crds <- centroids_module_9[,c(1,2,3)]
+
+colnames(centroids_module_9_crds)<-c("ID", "x", "y")
+cent_order_module_9 <- as.character(centroids_module_9$Node)
+write.csv(centroids_module_9, "Module_9_Centroids.csv")
+
+# Read in data and identify which columns are loci
+gstud_data_module_9 <- read_population("BorealV2_walk_Module_9_data.csv", type="column", locus.columns = 14:31)
+#data$clust<-as.character(data$clust)
+
+#convert from gstdio format to graph4lg format
+genind_module_9 <- gstud_to_genind(gstud_data_module_9, pop_col = "Node", ind_col = "PCID")
+
+#Genetic Diversity Assessment
+gen_div_module_9 <- pop_gen_index(genind_module_9)
+
+#write csv of gen div
+write.csv(gen_div_module_9, "summary_stats_V2_walk_module9.csv")
+
+graph_cip_module_9 <- gen_graph_indep(x= genind_module_9,
+                                      dist = "PG",
+                                      cov = "dist",
+                                      adj = "holm",
+                                      pcor = "magwene") 
+
+#Calculate node metrics
+metric_cip_module_9 <- compute_node_metric(graph = graph_cip_module_9)
+
+#add node metrics as node attributes
+graph_cip_module_9 <- add_nodes_attr(graph_cip_module_9,
+                                     data = metric_cip_module_9,
+                                     index = "ID",
+                                     include = "all") 
+
+#Run community detection algorithm
+module_cip_module_9 <- compute_graph_modul(graph_cip_module_9,
+                                           algo = "walktrap",
+                                           node_inter = "distance")
+#write.csv(module_cip_module_9, "module_CIP_module9.csv")
+
+# add communitty detected algorith results as node attributes
+graph_cip_module_9 <- add_nodes_attr(graph_cip_module_9,
+                                     data = module_cip_module_9,
+                                     index = "ID",
+                                     include = "all")
+
+graph_cip_module_9 <- add_nodes_attr(graph_cip_module_9,
+                                     data = gen_div_module_9,
+                                     index = "ID",
+                                     include = "all")
+
+#Create shp. file from graph object
+graph_to_shp(graph = graph_cip_module_9, 
+             crds = centroids_module_9_crds,
+             mode = "both",
+             layer = "Boreal_walk_Module_9_V3",
+             dir_path = "wd",
+             metrics = TRUE,
+             crds_crs = 4326)
+
+#plot graph spatialy 
+p_cip_module_9 <- plot_graph_lg(graph_cip_module_9, 
+                                mode = "spatial",
+                                crds = centroids_module_9_crds,
+                                link_width = "inv_w",
+                                module = "module",
+                                node_size = "miw")
+
+p_cip_module_9
+```
